@@ -64,7 +64,7 @@ public static class Conversion
             case "deu":
                 return 10;
             default:
-                return null;
+                return -1;
         }
     }
 }
