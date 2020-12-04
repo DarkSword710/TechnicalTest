@@ -861,7 +861,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 29809e76c4819ff4baa2620b4b8d35ba, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxValue: 10
+  maxValue: 29
   fadeTime: 2
   showTime: 2
   answerShowTime: 2

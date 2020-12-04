@@ -41,7 +41,7 @@ public class NumGame : MonoBehaviour
 
     //In-editor variables to change the scripts behaviour
     [SerializeField]
-    private int maxValue = 10;
+    private int maxValue = 29;
 
     //Seconds that the fading animation will last
     [SerializeField]
@@ -95,7 +95,7 @@ public class NumGame : MonoBehaviour
         answerNums = new int[buttons.Length];
         pressedAnswers = new bool[buttons.Length];
 
-        //Finally it sets the right and wrong answers to 0 and updates the scoreboard and sets the initial state and timer
+        //Finally it sets the right and wrong answers to 0 and updates the scoreboard and initialises the state
         rightScore = 0;
         wrongScore = 0;
 
@@ -108,13 +108,14 @@ public class NumGame : MonoBehaviour
     void Update()
     {
         //The update function manages the state machine the game runs on
+        //Most states just wait for the timer to end to change to the appropiate state. The ChangeState() method manages
+        //everything else
         switch (state)
         {
             case State.NUM_FADE_IN:
                 timer += Time.deltaTime;
                 if(timer >= fadeTime)
                 {
-                    //StopAllCoroutines();
                     ChangeState(State.NUM_SHOW);
                 }
                 break;
@@ -131,7 +132,6 @@ public class NumGame : MonoBehaviour
                 timer += Time.deltaTime;
                 if (timer >= fadeTime)
                 {
-                    //StopAllCoroutines();
                     ChangeState(State.ANSWERS_FADE_IN);
                 }
                 break;
@@ -140,7 +140,6 @@ public class NumGame : MonoBehaviour
                 timer += Time.deltaTime;
                 if (timer >= fadeTime)
                 {
-                    //StopAllCoroutines();
                     ChangeState(State.ANSWERS_WAIT);
                 }
                 break;
@@ -152,16 +151,17 @@ public class NumGame : MonoBehaviour
                 timer += Time.deltaTime;
                 if (timer >= answerShowTime)
                 {
-                    //StopAllCoroutines();
                     ChangeState(State.ANSWERS_FADE_OUT);
                 }
                 break;
 
+            //ANSWERS_FADE_OUT is the special case. It changes its state based on if the right answer was pressed or not.
+            //The function that manages button pressing automatically sets the right answer to pressed if all other buttons
+            //have been used.
             case State.ANSWERS_FADE_OUT:
                 timer += Time.deltaTime;
                 if (timer >= fadeTime)
                 {
-                    //StopAllCoroutines();
                     if (pressedAnswers[rightAnswer])
                     {
                         ChangeState(State.NUM_FADE_IN);
@@ -238,8 +238,10 @@ public class NumGame : MonoBehaviour
 
     private void ChangeState(State s)
     {
+        //This function sets the loop to enter the state indicated.
         switch (s)
         {
+            //When the number to guess fades in, the numbers are rerolled and all buttons are unpressed.
             case State.NUM_FADE_IN:
                 RandomizeValues();
                 failCounter = 0;
@@ -265,6 +267,7 @@ public class NumGame : MonoBehaviour
                 }
                 break;
 
+            //When waiting for the answer, all buttons that have not been pressed yet are enabled
             case State.ANSWERS_WAIT:
                 for (int i = 0; i < buttons.Length; i++)
                 {
@@ -274,7 +277,8 @@ public class NumGame : MonoBehaviour
                     }
                 }
                 break;
-
+            
+            //Once a button is pressed, the code disables them until the loop enters ANSWERS_WAIT again
             case State.ANSWERS_SHOW:
                 for (int i = 0; i < buttons.Length; i++)
                 {
@@ -282,6 +286,7 @@ public class NumGame : MonoBehaviour
                 }
                 break;
 
+            //When fading out buttons, fades out all pressed buttons. This will have no effect on buttons already faded.
             case State.ANSWERS_FADE_OUT:
                 for (int i = 0; i < buttons.Length; i++)
                 {
@@ -296,6 +301,8 @@ public class NumGame : MonoBehaviour
             default:
                 break;
         }
+
+        //Resets the timer and changes the state accordingly
         timer = 0;
         state = s;
     }
@@ -312,6 +319,7 @@ public class NumGame : MonoBehaviour
             {
                 if(i == rightAnswer)
                 {
+                    //If the answer is right, presses all other buttons to fade them all out
                     rightScore += 1;
                     buttonImages[i].color = new Color(0, 1, 0, buttonImages[i].color.a);
                     for (int j = 0; j < buttons.Length; j++)
@@ -324,9 +332,10 @@ public class NumGame : MonoBehaviour
                     wrongScore += 1;
                     buttonImages[i].color = new Color(1, 0, 0, buttonImages[i].color.a);
 
-
+                    //If the answer is wrong, checks whether the only answer left is the right one
                     pressedAnswers[i] = true;
                     failCounter = 0;
+
                     for (int j = 0; j < buttons.Length; j++)
                     {
                         if (pressedAnswers[j])
@@ -334,6 +343,8 @@ public class NumGame : MonoBehaviour
                             failCounter++;
                         }
                     }
+
+                    //If it is, presses it to fade it out to and reroll the numbers
                     if(failCounter >= buttons.Length - 1)
                     {
                         buttonImages[rightAnswer].color = new Color(0, 1, 0, buttonImages[i].color.a);
@@ -342,7 +353,6 @@ public class NumGame : MonoBehaviour
                 }
 
                 //Regardless of that, it updates the scoreboard and update the state to show the results
-
                 UpdateScoreboard();
                 ChangeState(State.ANSWERS_SHOW);
                 break;
