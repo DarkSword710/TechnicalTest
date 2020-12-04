@@ -78,7 +78,16 @@ public static class Utilities
         {
             text.color = new Color(text.color.r, text.color.g, text.color.b, text.color.a + speed * Time.deltaTime);
             yield return null;
-        } while (text.color.a > 0 && text.color.a < 1);
+        } while (text.color.a > 0 && text.color.a < 1 && speed != 0);
+        if (speed > 0)
+        {
+            text.color = new Color(text.color.r, text.color.g, text.color.b, 1);
+        }
+        else if (speed < 0)
+        {
+            text.color = new Color(text.color.r, text.color.g, text.color.b, 0);
+        }
+        yield break;
     }
 
     public static IEnumerator Fade(Image image, float speed)
@@ -88,6 +97,15 @@ public static class Utilities
         {
             image.color = new Color(image.color.r, image.color.g, image.color.b, image.color.a + speed * Time.deltaTime);
             yield return null;
-        } while (image.color.a > 0 && image.color.a < 1);
+        } while (image.color.a > 0 && image.color.a < 1 && speed != 0);
+
+        if(speed > 0)
+        {
+            image.color = new Color(image.color.r, image.color.g, image.color.b, 1);
+        } else if (speed < 0)
+        {
+            image.color = new Color(image.color.r, image.color.g, image.color.b, 0);
+        }
+        yield break;
     }
 }
