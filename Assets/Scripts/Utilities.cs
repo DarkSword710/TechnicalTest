@@ -1,13 +1,15 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 
 //Class containing functions to help convert from a number to its written name and vice versa
-public static class Conversion
+public static class Utilities
 {
     public static string IntToString(int i)
     {
+        //Given a number returns the written form of that number
         switch (i)
         {
             case 0:
@@ -39,6 +41,7 @@ public static class Conversion
 
     public static int StringToInt(string s)
     {
+        //Given the written form of a number returns the number itself
         switch (s.ToLower())
         {
             case "zero":
@@ -66,5 +69,25 @@ public static class Conversion
             default:
                 return -1;
         }
+    }
+
+    public static IEnumerator Fade(Text text, float speed)
+    {
+        //Coroutine that fades a color according to a speed
+        do
+        {
+            text.color = new Color(text.color.r, text.color.g, text.color.b, text.color.a + speed * Time.deltaTime);
+            yield return null;
+        } while (text.color.a > 0 && text.color.a < 1);
+    }
+
+    public static IEnumerator Fade(Image image, float speed)
+    {
+        //Coroutine that fades a color according to a speed
+        do
+        {
+            image.color = new Color(image.color.r, image.color.g, image.color.b, image.color.a + speed * Time.deltaTime);
+            yield return null;
+        } while (image.color.a > 0 && image.color.a < 1);
     }
 }

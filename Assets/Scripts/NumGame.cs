@@ -4,12 +4,27 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 
+enum State
+{
+    NUM_FADE_IN,
+    NUM_SHOW,
+    NUM_FADE_OUT,
+    ANSWERS_FADE_IN,
+    ANSWERS_WAIT,
+    ANSWERS_SHOW,
+    ANSWERS_FADE_OUT
+};
+
 public class NumGame : MonoBehaviour
 {
-    //Variable declaration to hold references to the different buttons and the text box
+    //Variable declaration to hold references to the different buttons and their elements and the text box
     private Text textBox;
+
     private Text scoreboard;
+
     private Button[] buttons;
+    private Image[] buttonImages;
+    private Text[] buttonText;
 
     //Number to guess and array of numbers to put in the other buttons
     private int guessNum;
@@ -18,54 +33,149 @@ public class NumGame : MonoBehaviour
     //Array position of the button containing the right answer
     private int rightAnswer;
 
-    //Right and wrong answers given throughout the playthrough
+    //Right and wrong answers given throughout the playthrough and the current question
     private int rightScore;
     private int wrongScore;
+    private bool[] pressedAnswers;
+    int failCounter;
 
     //In-editor variables to change the scripts behaviour
     [SerializeField]
     private int maxValue = 10;
 
+    //Seconds that the fading animation will last
+    [SerializeField]
+    private float fadeTime = 2;
+
+    //Seconds that the number to guess will be shown on screen
+    [SerializeField]
+    private float showTime = 2;
+
+    //Seconds that the answers will bee shown on screen
+    [SerializeField]
+    private float answerShowTime = 2;
+
+    //State of the game and timer to switch state
+    State state;
+    float timer;
+
     // Start is called before the first frame update
     void Start()
     {
-        //On start the Object finds its children textboxes and buttons
+        //On start the Object finds its children textboxes and buttons and sets their visibility
         Text[] textAux = GetComponentsInChildren<Text>();
         for(int i = 0; i < textAux.Length; i++)
         {
             if(textAux[i].text.ToLower() == "written number")
             {
                 textBox = textAux[i];
-                Debug.Log(textBox.name + "attached succesfully");
+                textBox.color = new Color(textBox.color.r, textBox.color.g, textBox.color.b, 0);
+
             } else if (textAux[i].text.ToLower() == "scoreboard")
             {
                 scoreboard = textAux[i];
-                Debug.Log(scoreboard.name + "attached succesfully");
             }
         }
 
         buttons = GetComponentsInChildren<Button>();
-        for(int i = 0; i < buttons.Length; i++)
+        buttonImages = new Image[buttons.Length];
+        buttonText = new Text[buttons.Length];
+
+        for (int i = 0; i < buttons.Length; i++)
         {
-            Debug.Log(buttons[i].name + "attached succesfully");
+            buttons[i].interactable = false;
+            buttonImages[i] = buttons[i].gameObject.GetComponent<Image>();
+            buttonText[i] = buttons[i].GetComponentInChildren<Text>();
+
+            buttonImages[i].color = new Color(buttonImages[i].color.r, buttonImages[i].color.g, buttonImages[i].color.b, 0);
+            buttonText[i].color = new Color(buttonText[i].color.r, buttonText[i].color.g, buttonText[i].color.b, 0);
         }
 
-        //Then initializes the answer array to the appropiate number of buttons and randomizes the values
+        //Then initializes the answer array to the appropiate number of buttons
         answerNums = new int[buttons.Length];
+        pressedAnswers = new bool[buttons.Length];
 
-        RandomizeValues();
-
-        //Finally it sets the right and wrong answers to 0 and updates the scoreboard
+        //Finally it sets the right and wrong answers to 0 and updates the scoreboard and sets the initial state and timer
         rightScore = 0;
         wrongScore = 0;
 
         UpdateScoreboard();
+
+        ChangeState(State.NUM_FADE_IN);
     }
 
     // Update is called once per frame
     void Update()
     {
-        
+        //The update function manages the state machine the game runs on
+        switch (state)
+        {
+            case State.NUM_FADE_IN:
+                timer += Time.deltaTime;
+                if(timer >= fadeTime)
+                {
+                    //StopAllCoroutines();
+                    ChangeState(State.NUM_SHOW);
+                }
+                break;
+
+            case State.NUM_SHOW:
+                timer += Time.deltaTime;
+                if (timer >= showTime)
+                {
+                    ChangeState(State.NUM_FADE_OUT);
+                }
+                break;
+
+            case State.NUM_FADE_OUT:
+                timer += Time.deltaTime;
+                if (timer >= fadeTime)
+                {
+                    //StopAllCoroutines();
+                    ChangeState(State.ANSWERS_FADE_IN);
+                }
+                break;
+
+            case State.ANSWERS_FADE_IN:
+                timer += Time.deltaTime;
+                if (timer >= fadeTime)
+                {
+                    //StopAllCoroutines();
+                    ChangeState(State.ANSWERS_WAIT);
+                }
+                break;
+
+            case State.ANSWERS_WAIT:
+                break;
+
+            case State.ANSWERS_SHOW:
+                timer += Time.deltaTime;
+                if (timer >= answerShowTime)
+                {
+                    //StopAllCoroutines();
+                    ChangeState(State.ANSWERS_FADE_OUT);
+                }
+                break;
+
+            case State.ANSWERS_FADE_OUT:
+                timer += Time.deltaTime;
+                if (timer >= fadeTime)
+                {
+                    //StopAllCoroutines();
+                    if (pressedAnswers[rightAnswer])
+                    {
+                        ChangeState(State.NUM_FADE_IN);
+                    }
+                    else
+                    {
+                        ChangeState(State.ANSWERS_WAIT);
+                    }
+                }
+                break;
+
+            default:
+                break;
+        }
     }
 
     private void RandomizeValues()
@@ -112,10 +222,10 @@ public class NumGame : MonoBehaviour
         }
 
         //Then values are assigned to their respective Objects
-        textBox.text = Conversion.IntToString(guessNum);
+        textBox.text = Utilities.IntToString(guessNum);
         for (int i = 0; i < buttons.Length; i++)
         {
-            buttons[i].GetComponentInChildren<Text>().text = answerNums[i].ToString();
+            buttonText[i].text = answerNums[i].ToString();
         }
     }
 
@@ -124,6 +234,70 @@ public class NumGame : MonoBehaviour
         //Simple function that updates the written score
         scoreboard.text = "Respostes correctes: " + rightScore.ToString() + "\nRespostes equivocades: " + wrongScore.ToString();
 
+    }
+
+    private void ChangeState(State s)
+    {
+        switch (s)
+        {
+            case State.NUM_FADE_IN:
+                RandomizeValues();
+                failCounter = 0;
+                StartCoroutine(Utilities.Fade(textBox, 1/fadeTime));
+                for (int i = 0; i < buttons.Length; i++){
+                    buttonImages[i].color = new Color(1, 1, 1, buttonImages[i].color.a);
+                    pressedAnswers[i] = false;
+                }
+                break;
+
+            case State.NUM_SHOW:
+                break;
+
+            case State.NUM_FADE_OUT:
+                StartCoroutine(Utilities.Fade(textBox, -1 / fadeTime));
+                break;
+
+            case State.ANSWERS_FADE_IN:
+                for(int i = 0; i < buttons.Length; i++)
+                {
+                    StartCoroutine(Utilities.Fade(buttonImages[i], 1 / fadeTime));
+                    StartCoroutine(Utilities.Fade(buttonText[i], 1 / fadeTime));
+                }
+                break;
+
+            case State.ANSWERS_WAIT:
+                for (int i = 0; i < buttons.Length; i++)
+                {
+                    if (!pressedAnswers[i])
+                    {
+                        buttons[i].interactable = true;
+                    }
+                }
+                break;
+
+            case State.ANSWERS_SHOW:
+                for (int i = 0; i < buttons.Length; i++)
+                {
+                    buttons[i].interactable = false;
+                }
+                break;
+
+            case State.ANSWERS_FADE_OUT:
+                for (int i = 0; i < buttons.Length; i++)
+                {
+                    if (pressedAnswers[i])
+                    {
+                        StartCoroutine(Utilities.Fade(buttonImages[i], -1 / fadeTime));
+                        StartCoroutine(Utilities.Fade(buttonText[i], -1 / fadeTime));
+                    }
+                }
+                break;
+
+            default:
+                break;
+        }
+        timer = 0;
+        state = s;
     }
 
     public void OnButtonClicked()
@@ -139,16 +313,39 @@ public class NumGame : MonoBehaviour
                 if(i == rightAnswer)
                 {
                     rightScore += 1;
+                    buttonImages[i].color = new Color(0, 1, 0, buttonImages[i].color.a);
+                    for (int j = 0; j < buttons.Length; j++)
+                    {
+                        pressedAnswers[j] = true;
+                    }
                 }
                 else
                 {
                     wrongScore += 1;
+                    buttonImages[i].color = new Color(1, 0, 0, buttonImages[i].color.a);
+
+
+                    pressedAnswers[i] = true;
+                    failCounter = 0;
+                    for (int j = 0; j < buttons.Length; j++)
+                    {
+                        if (pressedAnswers[j])
+                        {
+                            failCounter++;
+                        }
+                    }
+                    if(failCounter >= buttons.Length - 1)
+                    {
+                        buttonImages[rightAnswer].color = new Color(0, 1, 0, buttonImages[i].color.a);
+                        pressedAnswers[rightAnswer] = true;
+                    }
                 }
 
-                //Regardless of that, it updates the scoreboard and randomizes the values
+                //Regardless of that, it updates the scoreboard and update the state to show the results
 
                 UpdateScoreboard();
-                RandomizeValues();
+                ChangeState(State.ANSWERS_SHOW);
+                break;
             }
         }
     }
